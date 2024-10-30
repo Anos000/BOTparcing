@@ -1,6 +1,11 @@
 name: Test MySQL and Selenium
 
-on: [push]
+# Добавлено workflow_dispatch для кнопки запуска вручную
+on:
+  push:
+    branches:
+      - main  # Можно указать нужную ветку
+  workflow_dispatch:  # Кнопка для ручного запуска
 
 jobs:
   test:
