@@ -1,44 +1,33 @@
-name: Run Script
+name: Test MySQL and Selenium
 
-on:
-  schedule:
-    - cron: '0 21 * * *'  # Запускать скрипт ежедневно в 21:00 UTC
-  workflow_dispatch:  # Позволяет запускать вручную
+on: [push]
 
 jobs:
-  run-script:
+  test:
     runs-on: ubuntu-latest
 
+    env:
+      MYSQL_USER: ${{ secrets.MYSQL_USER }}
+      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+      MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y mysql-server  # Установка MySQL
-        python -m pip install --upgrade pip
-        pip install selenium webdriver-manager beautifulsoup4 mysql-connector-python pytz lxml  # Установка необходимых библиотек
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
 
-    - name: Start MySQL service
-      run: |
-        sudo service mysql start  # Запуск MySQL
+      - name: Start MySQL
+        run: |
+          sudo service mysql start
+          sudo mysql -u root -p"${{ secrets.MYSQL_PASSWORD }}" -e "CREATE DATABASE IF NOT EXISTS ${{ secrets.MYSQL_DATABASE }};"
 
-    - name: Configure MySQL
-      run: |
-        sudo mysql -e "CREATE DATABASE IF NOT EXISTS test_baza_mysql;"
-        sudo mysql -e "CREATE USER 'gh_actions'@'localhost' IDENTIFIED BY 'gh_password1234';"
-        sudo mysql -e "GRANT ALL PRIVILEGES ON test_baza_mysql.* TO 'gh_actions'@'localhost';"
-        sudo mysql -e "FLUSH PRIVILEGES;"
-
-    - name: Run Python script
-      env:
-        MYSQL_USER: ${{ secrets.MYSQL_USER }}
-        MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-        MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-      run: python test_sql_parc_mysql.py
+      - name: Run the script
+        run: python test_sql_parc_mysql.py
