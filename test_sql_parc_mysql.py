@@ -31,10 +31,10 @@ def create_connection():
     connection = None
     try:
         connection = mysql.connector.connect(
-            host='localhost',  # Или IP-адрес вашего удаленного сервера
-            user='root',  # Замените на имя вашего пользователя
-            password='AnosVoldigod0',  # Замените на ваш пароль
-            database='test_baza_mysql'  # Название новой базы данных
+            host='localhost',
+            user=os.getenv('MYSQL_USER'),
+            password=os.getenv('MYSQL_PASSWORD'),
+            database=os.getenv('MYSQL_DATABASE')
         )
         print("Соединение с MySQL установлено")
     except Error as e:
