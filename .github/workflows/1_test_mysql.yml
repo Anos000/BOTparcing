@@ -38,7 +38,7 @@ jobs:
 
     - name: Run Python script
       env:
-        MYSQL_USER: gh_actions
-        MYSQL_PASSWORD: gh_password1234
-        MYSQL_DATABASE: test_baza_mysql
+        MYSQL_USER: ${{ secrets.MYSQL_USER }}
+        MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+        MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
       run: python test_sql_parc_mysql.py
