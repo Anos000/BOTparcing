@@ -7,7 +7,7 @@ from mysql.connector import Error
 from datetime import datetime
 import pytz
 import re
-
+import os
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')
@@ -41,6 +41,7 @@ def create_connection():
         print(f"Ошибка подключения к MySQL: {e}")
 
     return connection
+
 
 # Тест подключения
 conn = create_connection()
