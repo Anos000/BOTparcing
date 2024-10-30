@@ -34,11 +34,11 @@ jobs:
         MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
         MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
       run: |
-        # Создание базы данных и пользователя с секретами
-        sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"
-        sudo mysql -e "CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';"
-        sudo mysql -e "GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'localhost';"
-        sudo mysql -e "FLUSH PRIVILEGES;"
+        # Выполняем настройку MySQL под root
+        sudo mysql -u root -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"
+        sudo mysql -u root -e "CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';"
+        sudo mysql -u root -e "GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'localhost';"
+        sudo mysql -u root -e "FLUSH PRIVILEGES;"
 
     - name: Run Python script
       env:
