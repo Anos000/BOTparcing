@@ -37,12 +37,15 @@ def create_connection():
             database=os.getenv('MYSQL_DATABASE')
         )
         print("Соединение с MySQL установлено")
-    except Error as e:
-        print(f"Ошибка '{e}'")
+    except mysql.connector.Error as e:
+        print(f"Ошибка подключения к MySQL: {e}")
 
     return connection
 
+# Тест подключения
 conn = create_connection()
+if conn:
+    conn.close()
 cursor = conn.cursor()
 
 # Создаем таблицу, если ее нет
