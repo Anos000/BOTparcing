@@ -1,4 +1,4 @@
-name: Run ScriptMy
+name: Run Script
 
 on:
   schedule:
@@ -29,13 +29,16 @@ jobs:
       run: |
         sudo service mysql start  # Запуск MySQL
 
-    - name: Create MySQL database and user
+    - name: Configure MySQL
       run: |
-        sudo mysql -u root -pAnosVoldigod0 <<EOF
-        CREATE DATABASE IF NOT EXISTS test_baza_mysql;
-        GRANT ALL PRIVILEGES ON test_baza_mysql.* TO 'root'@'localhost';
-        FLUSH PRIVILEGES;
-        EOF
+        sudo mysql -e "CREATE DATABASE IF NOT EXISTS test_baza_mysql;"
+        sudo mysql -e "CREATE USER 'gh_actions'@'localhost' IDENTIFIED BY 'gh_password1234';"
+        sudo mysql -e "GRANT ALL PRIVILEGES ON test_baza_mysql.* TO 'gh_actions'@'localhost';"
+        sudo mysql -e "FLUSH PRIVILEGES;"
 
     - name: Run Python script
-      run: python test_sql_parc_mysql.py  # Запуск скрипта парсинга
+      env:
+        MYSQL_USER: gh_actions
+        MYSQL_PASSWORD: gh_password1234
+        MYSQL_DATABASE: test_baza_mysql
+      run: python test_sql_parc_mysql.py
