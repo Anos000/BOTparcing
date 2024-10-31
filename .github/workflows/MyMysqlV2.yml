@@ -1,0 +1,33 @@
+name: Run ScriptMy2MYMYMY
+
+on:
+  schedule:
+    - cron: '0 21 * * *'  # Запускать скрипт ежедневно в 21:00 UTC
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  test_mysql_connection:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install mysql-connector-python
+          pip install selenium webdriver-manager beautifulsoup4 lxml pytz
+
+      - name: Run Python parser
+        env:
+          MYSQL_HOST: 'localhost'
+          MYSQL_PORT: '3306'
+          MYSQL_USER: 'root'
+          MYSQL_PASSWORD: 'AnosVoldigod0'
+          MYSQL_DATABASE: 'test_baza_mysql'
+        run: |
+          python test_sql_parc_mysqlV2MYYY.py
