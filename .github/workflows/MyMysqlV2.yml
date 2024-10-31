@@ -21,6 +21,9 @@ jobs:
         run: |
           pip install mysql-connector-python
           pip install selenium webdriver-manager beautifulsoup4 lxml pytz
+      - name: Install MySQL Client
+        run: sudo apt-get install mysql-client
+
 
       - name: Run Python parser
         env:
