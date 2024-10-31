@@ -33,8 +33,9 @@ def create_connection():
     try:
         connection = mysql.connector.connect(
             host='autorack.proxy.rlwy.net',
+            port=25010,
             user='root',
-            password='RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV',  # Подставьте свой пароль
+            password='RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV',
             database='railway'
         )
         print("Соединение с MySQL установлено")
