@@ -95,7 +95,7 @@ today_data = []
 cursor.execute('DELETE FROM today_productsV2')
 
 # Цикл по всем страницам
-for page in range(1, last_page + 1):
+for page in range(1, 4):
     print(f"Парсим страницу: {page}")
     driver.get(f"https://vapkagro.ru/catalog/avtomobilnye-zapchasti/?PAGEN_1={page}&SIZEN_1=12")
     time.sleep(2)  # Задержка для прогрузки страницы
