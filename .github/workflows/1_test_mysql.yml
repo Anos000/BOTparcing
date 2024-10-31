@@ -1,33 +1,31 @@
-name: Run Script
+name: Run Python Parser
 
 on:
-  schedule:
-    - cron: '0 21 * * *'  # Запускать скрипт ежедневно в 21:00 UTC
-  workflow_dispatch:  # Позволяет запускать вручную
+  workflow_dispatch:  # Добавляет кнопку для ручного запуска в разделе Actions
 
 jobs:
-  run-script:
+  test_mysql_connection:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v3
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y mysql-client  # Установка MySQL клиента
-        python -m pip install --upgrade pip
-        pip install selenium webdriver-manager beautifulsoup4 mysql-connector-python pytz lxml  # Установка необходимых библиотек
+      - name: Install dependencies
+        run: |
+          pip install mysql-connector-python
+          pip install selenium webdriver-manager beautifulsoup4 lxml pytz
 
-    - name: Run Python script
-      env:
-        MYSQL_USER: root  # Ваш пользователь
-        MYSQL_PASSWORD: 'RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV'  # Ваш пароль
-        MYSQL_DATABASE: 'railway'  # Ваша база данных
-      run: python test_sql_parc_mysql.py  # Замените на имя вашего скрипта
+      - name: Run Python parser
+        env:
+          MYSQL_HOST: 'autorack.proxy.rlwy.net'
+          MYSQL_PORT: '25010'
+          MYSQL_USER: 'root'
+          MYSQL_PASSWORD: 'RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV'
+          MYSQL_DATABASE: 'railway'
+        run: |
+          python test_sql_parc_mysql.py
