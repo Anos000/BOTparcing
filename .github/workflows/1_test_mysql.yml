@@ -21,29 +21,13 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y mysql-server  # Установка MySQL
+        sudo apt-get install -y mysql-client  # Установка MySQL клиента
         python -m pip install --upgrade pip
         pip install selenium webdriver-manager beautifulsoup4 mysql-connector-python pytz lxml  # Установка необходимых библиотек
 
-    - name: Start MySQL service
-      run: sudo service mysql start  # Запуск MySQL
-
-    - name: Configure MySQL with root password
-      env:
-        MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-        MYSQL_USER: ${{ secrets.MYSQL_USER }}
-        MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-        MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-      run: |
-        # Прямое указание пароля в команде
-        mysql -uroot -p${MYSQL_ROOT_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE};"
-        mysql -uroot -p${MYSQL_ROOT_PASSWORD} -e "CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'localhost' IDENTIFIED BY '${MYSQL_PASSWORD}';"
-        mysql -uroot -p${MYSQL_ROOT_PASSWORD} -e "GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'localhost';"
-        mysql -uroot -p${MYSQL_ROOT_PASSWORD} -e "FLUSH PRIVILEGES;"
-
     - name: Run Python script
       env:
-        MYSQL_USER: ${{ secrets.MYSQL_USER }}
-        MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-        MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-      run: python test_sql_parc_mysql.py
+        MYSQL_USER: root  # Ваш пользователь
+        MYSQL_PASSWORD: 'RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV'  # Ваш пароль
+        MYSQL_DATABASE: 'railway'  # Ваша база данных
+      run: python test_sql_parc_mysql.py  # Замените на имя вашего скрипта
