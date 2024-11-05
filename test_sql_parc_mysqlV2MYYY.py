@@ -35,24 +35,20 @@ else:
 print(f"Найдено страниц: {last_page}")
 
 # Подключение к базе данных MySQL
-def create_connection():
-    connection = None
-    try:
-        connection = mysql.connector.connect(
-            host='localhost',  # Ваш хост
-            port=3306,  # Ваш порт
-            user='root',  # Ваш пользователь
-            password='AnosVoldigod0',  # Ваш пароль
-            database='test_baza_mysql'  # Ваша база данных
-        )
-        print("Соединение с MySQL установлено")
-    except mysql.connector.Error as e:
-        print(f"Ошибка подключения к MySQL: {e}")
-    return connection
+db_config = {
+    'host': 'krutskuy.beget.tech',  # Замените на ваше имя хоста
+    'user': 'krutskuy_parc',       # Ваше имя пользователя
+    'password': 'AnosVoldigod0',    # Ваш пароль
+    'database': 'krutskuy_parc',    # Имя вашей базы данных
+}
 
-# Создаем подключение
-conn = create_connection()
-cursor = conn.cursor()
+# Подключение к базе данных
+try:
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    print("Подключение успешно!")
+except mysql.connector.Error as err:
+    print(f"Ошибка подключения: {err}")
 
 # Создаем таблицу, если она не существует
 cursor.execute('''
@@ -95,7 +91,7 @@ today_data = []
 cursor.execute('DELETE FROM today_productsV2')
 
 # Цикл по всем страницам
-for page in range(1, 4):
+for page in range(1, last_page + 1):
     print(f"Парсим страницу: {page}")
     driver.get(f"https://vapkagro.ru/catalog/avtomobilnye-zapchasti/?PAGEN_1={page}&SIZEN_1=12")
     time.sleep(2)  # Задержка для прогрузки страницы
