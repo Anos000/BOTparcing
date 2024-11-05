@@ -35,24 +35,20 @@ else:
 print(f"Найдено страниц: {last_page}")
 
 # Подключение к базе данных MySQL
-def create_connection():
-    connection = None
-    try:
-        connection = mysql.connector.connect(
-            host='autorack.proxy.rlwy.net',  # Ваш хост
-            port=25010,  # Ваш порт
-            user='root',  # Ваш пользователь
-            password='RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV',  # Ваш пароль
-            database='railway'  # Ваша база данных
-        )
-        print("Соединение с MySQL установлено")
-    except mysql.connector.Error as e:
-        print(f"Ошибка подключения к MySQL: {e}")
-    return connection
+db_config = {
+    'host': 'krutskuy.beget.tech',  # Замените на ваше имя хоста
+    'user': 'krutskuy_parc',       # Ваше имя пользователя
+    'password': 'AnosVoldigod0',    # Ваш пароль
+    'database': 'krutskuy_parc',    # Имя вашей базы данных
+}
 
-# Создаем подключение
-conn = create_connection()
-cursor = conn.cursor()
+# Подключение к базе данных
+try:
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    print("Подключение успешно!")
+except mysql.connector.Error as err:
+    print(f"Ошибка подключения: {err}")
 
 # Создаем таблицу, если она не существует
 cursor.execute('''
