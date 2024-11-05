@@ -7,7 +7,7 @@ from datetime import datetime
 import pytz
 import re
 import time
-
+import csv
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Запуск браузера в фоновом режиме
@@ -174,6 +174,34 @@ if today_data:
         INSERT INTO productsV2 (date_parsed, title, number, price, image, link)
         VALUES (%s, %s, %s, %s, %s, %s)
     ''', today_data)
+
+# Функция для чтения данных из таблицы и сохранения их в CSV
+def export_table_to_csv(table_name, filename, headers):
+    # Обеспечиваем подключение к базе данных
+    ensure_connection()
+    cursor.execute(f"SELECT * FROM {table_name}")
+    rows = cursor.fetchall()
+    
+    # Сохранение данных в CSV
+    with open(filename, mode='w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(headers)  # Записываем заголовки
+        writer.writerows(rows)    # Записываем все строки таблицы
+    print(f"Данные из таблицы '{table_name}' сохранены в {filename}")
+
+# Сохранение всех данных из таблицы productsV3 в productsV3.csv
+export_table_to_csv(
+    'productsV2', 
+    'productsV2.csv', 
+    ['ID', 'Дата парсинга', 'Название', 'Артикул', 'Цена', 'Изображение', 'Ссылка']
+)
+
+# Сохранение актуальных данных из таблицы today_productsV3 в today_productsV3.csv
+export_table_to_csv(
+    'today_productsV2', 
+    'today_productsV2.csv', 
+    ['ID', 'Дата парсинга', 'Название', 'Артикул', 'Цена', 'Изображение', 'Ссылка']
+)
 
 # Сохранение изменений и закрытие соединения
 conn.commit()
