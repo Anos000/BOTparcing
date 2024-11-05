@@ -83,6 +83,7 @@ today_data = []
 
 # Проходим по всем страницам
 for page in range(1, last_page + 1):
+    connection.ping(reconnect=True)
     page_url = f"https://avtobat36.ru/catalog/avtomobili_gruzovye/?PAGEN_2={page}"
     driver.get(page_url)
     html_content = driver.page_source
