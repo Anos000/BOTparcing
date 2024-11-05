@@ -20,26 +20,21 @@ driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), opti
 base_url = "https://www.autoopt.ru/catalog/otechestvennye_gruzoviki?pageSize=100&PAGEN_1="
 
 # Подключение к базе данных MySQL
-def create_connection():
-    connection = None
-    try:
-        connection = mysql.connector.connect(
-            host='autorack.proxy.rlwy.net',
-            port=25010,
-            user='root',
-            password='RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV',
-            database='railway'
-        )
-        print("Соединение с MySQL установлено")
-    except mysql.connector.Error as e:
-        print(f"Ошибка подключения к MySQL: {e}")
+db_config = {
+    'host': 'krutskuy.beget.tech',  # Замените на ваше имя хоста
+    'user': 'krutskuy_parc',       # Ваше имя пользователя
+    'password': 'AnosVoldigod0',    # Ваш пароль
+    'database': 'krutskuy_parc',    # Имя вашей базы данных
+}
 
-    return connection
-
-# Создаем подключение к базе данных
-conn = create_connection()
-if conn:
+# Подключение к базе данных
+try:
+    conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
+    print("Подключение успешно!")
+except mysql.connector.Error as err:
+    print(f"Ошибка подключения: {err}")
+
 
     # Создаем таблицу, если она не существует
     cursor.execute(''' 
