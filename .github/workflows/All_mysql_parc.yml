@@ -21,33 +21,35 @@ jobs:
         run: |
           pip install mysql-connector-python
           pip install selenium webdriver-manager beautifulsoup4 lxml pytz
+      - name: Install MySQL Client
+        run: sudo apt-get install mysql-client
 
       - name: Run Python parser 1
         env:
-          MYSQL_HOST: 'autorack.proxy.rlwy.net'
-          MYSQL_PORT: '25010'
+          MYSQL_HOST: 'localhost'
+          MYSQL_PORT: '3306'
           MYSQL_USER: 'root'
-          MYSQL_PASSWORD: 'RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV'
-          MYSQL_DATABASE: 'railway'
+          MYSQL_PASSWORD: 'AnosVoldigod0'
+          MYSQL_DATABASE: 'test_baza_mysql'
         run: |
           python test_sql_parc_mysql.py
 
       - name: Run Python parser 2
         env:
-          MYSQL_HOST: 'autorack.proxy.rlwy.net'
-          MYSQL_PORT: '25010'
+          MYSQL_HOST: 'localhost'
+          MYSQL_PORT: '3306'
           MYSQL_USER: 'root'
-          MYSQL_PASSWORD: 'RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV'
-          MYSQL_DATABASE: 'railway'
+          MYSQL_PASSWORD: 'AnosVoldigod0'
+          MYSQL_DATABASE: 'test_baza_mysql'
         run: |
           python test_sql_parc_mysqlV2.py
 
       - name: Run Python parser 3
         env:
-          MYSQL_HOST: 'autorack.proxy.rlwy.net'
-          MYSQL_PORT: '25010'
+          MYSQL_HOST: 'localhost'
+          MYSQL_PORT: '3306'
           MYSQL_USER: 'root'
-          MYSQL_PASSWORD: 'RDNSYNJIrmlLIfDzSDXOYaLVdBJwBugV'
-          MYSQL_DATABASE: 'railway'
+          MYSQL_PASSWORD: 'AnosVoldigod0'
+          MYSQL_DATABASE: 'test_baza_mysql'
         run: |
           python test_sql_parc_mysqlV3.py
