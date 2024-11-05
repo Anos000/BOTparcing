@@ -174,7 +174,9 @@ if today_data:
         INSERT INTO productsV2 (date_parsed, title, number, price, image, link)
         VALUES (%s, %s, %s, %s, %s, %s)
     ''', today_data)
-
+def ensure_connection():
+    if not conn.is_connected():
+        conn.reconnect()
 # Функция для чтения данных из таблицы и сохранения их в CSV
 def export_table_to_csv(table_name, filename, headers):
     # Обеспечиваем подключение к базе данных
