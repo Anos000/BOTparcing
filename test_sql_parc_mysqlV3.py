@@ -131,7 +131,7 @@ def parse_page(page_number):
                 # Цена товара
                 price_elements = product.find_all('span', class_=re.compile(r'bold price-item.*'))
                 price = price_elements[0].text.strip() if price_elements else 'Необходимо уточнять'
-                price = re.sub(r'\D', '', price)
+                price = re.sub(r'\D', '', price)[:-2]
 
                 # Артикул товара
                 articule = product.find('div', class_='n-catalog-item__article')
