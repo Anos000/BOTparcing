@@ -21,17 +21,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install selenium webdriver-manager beautifulsoup4 pandas openpyxl lxml pytz telebot python-docx matplotlib fuzzywuzzy
 
-    - name: Start Timer Workflow
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const { owner, repo } = context.repo; // Получаем owner и repo из контекста
-          github.rest.actions.createWorkflowDispatch({
-            owner: owner,
-            repo: repo,
-            workflow_id: 'timer_workflow.yml',  // Имя файла таймера
-            ref: 'main'
-          });
+   
 
     - name: Run Bot Script
       run: |
