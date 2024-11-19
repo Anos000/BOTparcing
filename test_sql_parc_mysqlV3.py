@@ -8,6 +8,7 @@ import pytz
 import re
 import requests
 import base64
+
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Запуск браузера в фоновом режиме
@@ -43,6 +44,17 @@ try:
 except mysql.connector.Error as err:
     print(f"Ошибка подключения: {err}")
     exit(1)
+
+# Функция для проверки и восстановления соединения с базой данных
+def ensure_connection():
+    try:
+        if not conn.is_connected():
+            print("Соединение потеряно. Повторная попытка подключения...")
+            conn.reconnect()
+            print("Подключение восстановлено!")
+    except mysql.connector.Error as err:
+        print(f"Ошибка подключения: {err}")
+        exit(1)
 
 # Основной URL страницы
 base_url = "https://www.autoopt.ru/catalog/otechestvennye_gruzoviki?pageSize=100&PAGEN_1="
@@ -169,7 +181,7 @@ def parse_page(page_number):
                 else:
                     image_url = 'Нет изображения'
 
-                parsed_data_page.append((current_date, title, number, price, image_url, link,'3'))
+                parsed_data_page.append((current_date, title, number, price, image_url, link, '3'))
             except Exception as e:
                 print(f"Ошибка при обработке товара на странице {page_number}: {e}")
 
@@ -181,9 +193,7 @@ def parse_page(page_number):
 
 # Список для хранения данных о товарах
 parsed_data = []
-def ensure_connection():
-    if not conn.is_connected():
-        conn.reconnect()
+
 # Проходим по всем страницам
 for page_number in range(1, total_pages + 1):
     ensure_connection()
@@ -193,13 +203,13 @@ for page_number in range(1, total_pages + 1):
 # Проверка на новые товары или изменение цены
 new_entries = []
 
-for current_date, title, number, price, image, link in parsed_data:
+for current_date, title, number, price, image, link, site_id in parsed_data:
     if link in existing_data_dict:
         last_price = existing_data_dict[link]
         if price != last_price:  # Цена изменилась
-            new_entries.append((current_date, title, number, price, image, link,'3'))
+            new_entries.append((current_date, title, number, price, image, link, site_id))
     else:
-        new_entries.append((current_date, title, number, price, image, link,'3'))
+        new_entries.append((current_date, title, number, price, image, link, site_id))
 
 # Добавление новых товаров и товаров с измененной ценой в базу данных
 if new_entries:
@@ -208,16 +218,12 @@ if new_entries:
         INSERT INTO productsV3 (date_parsed, title, number, price, image, link, site_id)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
     ''', new_entries)
-else:
-    print("Изменений нет, данные не будут добавлены.")
 
 # Обновляем таблицу актуальных данных новыми данными текущего дня
 cursor.executemany('''
     INSERT INTO today_productsV3 (date_parsed, title, number, price, image, link, site_id)
     VALUES (%s, %s, %s, %s, %s, %s, %s)
 ''', parsed_data)
-
-
 
 # Сохранение и закрытие соединения
 conn.commit()
