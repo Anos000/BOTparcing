@@ -7,7 +7,8 @@ from mysql.connector import Error
 from datetime import datetime
 import pytz
 import re
-
+import requests
+import base64
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')
@@ -15,6 +16,33 @@ options.add_argument('--no-sandbox')
 options.add_argument('--disable-dev-shm-usage')
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+# Загрузка файла settings.txt с GitHub
+github_url = "https://api.github.com/repos/Anos000/test_parc/contents/settings.txt"
+response = requests.get(github_url)
+
+if response.status_code == 200:
+    file_content = response.json()
+    decoded_content = base64.b64decode(file_content['content']).decode('utf-8').splitlines()
+    db_config = {
+        'host': decoded_content[0].strip(),
+        'user': decoded_content[1].strip(),
+        'password': decoded_content[2].strip(),
+        'database': decoded_content[3].strip()
+    }
+    print(f"Содержимое settings.txt успешно загружено: {db_config}")
+else:
+    print(f"Ошибка загрузки settings.txt: {response.status_code}")
+    exit(1)
+
+# Подключение к базе данных MySQL
+try:
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    print("Подключение успешно!")
+except mysql.connector.Error as err:
+    print(f"Ошибка подключения: {err}")
+    exit(1)
 
 # URL страницы интернет-магазина
 url = "https://avtobat36.ru/catalog/avtomobili_gruzovye/"
@@ -52,7 +80,8 @@ CREATE TABLE IF NOT EXISTS products (
     number VARCHAR(255),
     price VARCHAR(255),
     image VARCHAR(255),
-    link VARCHAR(255)
+    link VARCHAR(255),
+    site_id INT
 )
 ''')
 
@@ -65,7 +94,8 @@ CREATE TABLE IF NOT EXISTS today_products (
     number VARCHAR(255),
     price VARCHAR(255),
     image VARCHAR(255),
-    link VARCHAR(255)
+    link VARCHAR(255),
+    site_id INT
 )
 ''')
 
@@ -121,7 +151,7 @@ for page in range(1, last_page + 1):
             image = f"https://avtobat36.ru{image_element['src']}" if image_element and 'src' in image_element.attrs else "Нет изображения"
 
             # Добавляем данные для последующей обработки
-            today_data.append((current_date, title, number, price, image, link_full))
+            today_data.append((current_date, title, number, price, image, link_full,'1'))
 
         except Exception as e:
             print(f"Ошибка при обработке товара: {e}")
@@ -135,17 +165,17 @@ for current_date, title, number, price, image, link in today_data:
         # Если ссылка уже есть, проверяем изменение цены
         last_price = existing_links[link]
         if price != last_price:  # Цена изменилась
-            new_entries.append((current_date, title, number, price, image, link))
+            new_entries.append((current_date, title, number, price, image, link,'1'))
     else:
         # Новый товар, если ссылка не найдена в базе
-        new_entries.append((current_date, title, number, price, image, link))
+        new_entries.append((current_date, title, number, price, image, link,'1'))
 
 # Добавление новых товаров и товаров с измененной ценой в базу данных
 if new_entries:
     print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
     cursor.executemany('''
-        INSERT INTO products (date_parsed, title, number, price, image, link)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO products (date_parsed, title, number, price, image, link, site_id)
+        VALUES (%s, %s, %s, %s, %s, %s, '1')
     ''', new_entries)
 else:
     print("Изменений нет, данные не будут добавлены.")
@@ -154,8 +184,8 @@ else:
 cursor.execute('DELETE FROM today_products')
 # Обновляем таблицу актуальных данных новыми данными текущего дня
 cursor.executemany('''
-    INSERT INTO today_products (date_parsed, title, number, price, image, link)
-    VALUES (%s, %s, %s, %s, %s, %s)
+    INSERT INTO today_products (date_parsed, title, number, price, image, link, site_id)
+    VALUES (%s, %s, %s, %s, %s, %s, '1')
 ''', today_data)
 
 
