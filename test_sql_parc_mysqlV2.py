@@ -7,7 +7,8 @@ from datetime import datetime
 import pytz
 import re
 import time
-
+import requests
+import base64
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Запуск браузера в фоновом режиме
@@ -16,6 +17,33 @@ options.add_argument('--disable-dev-shm-usage')
 
 # Устанавливаем драйвер для Chrome
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+# Загрузка файла settings.txt с GitHub
+github_url = "https://api.github.com/repos/Anos000/test_parc/contents/settings.txt"
+response = requests.get(github_url)
+
+if response.status_code == 200:
+    file_content = response.json()
+    decoded_content = base64.b64decode(file_content['content']).decode('utf-8').splitlines()
+    db_config = {
+        'host': decoded_content[0].strip(),
+        'user': decoded_content[1].strip(),
+        'password': decoded_content[2].strip(),
+        'database': decoded_content[3].strip()
+    }
+    print(f"Содержимое settings.txt успешно загружено: {db_config}")
+else:
+    print(f"Ошибка загрузки settings.txt: {response.status_code}")
+    exit(1)
+
+# Подключение к базе данных MySQL
+try:
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    print("Подключение успешно!")
+except mysql.connector.Error as err:
+    print(f"Ошибка подключения: {err}")
+    exit(1)
 
 # URL страницы интернет-магазина
 url = "https://vapkagro.ru/catalog/avtomobilnye-zapchasti/?PAGEN_1=1&SIZEN_1=12"
@@ -34,22 +62,6 @@ else:
 
 print(f"Найдено страниц: {last_page}")
 
-# Подключение к базе данных MySQL
-db_config = {
-    'host': 'krutskuy.beget.tech',  # Замените на ваше имя хоста
-    'user': 'krutskuy_parc',       # Ваше имя пользователя
-    'password': 'AnosVoldigod0',    # Ваш пароль
-    'database': 'krutskuy_parc',    # Имя вашей базы данных
-}
-
-# Подключение к базе данных
-try:
-    conn = mysql.connector.connect(**db_config)
-    cursor = conn.cursor()
-    print("Подключение успешно!")
-except mysql.connector.Error as err:
-    print(f"Ошибка подключения: {err}")
-
 # Создаем таблицу, если она не существует
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS productsV2 (
@@ -59,7 +71,8 @@ CREATE TABLE IF NOT EXISTS productsV2 (
     number VARCHAR(255),
     price VARCHAR(255),
     image VARCHAR(255),
-    link VARCHAR(255)
+    link VARCHAR(255),
+    site_id INT
 )
 ''')
 
@@ -72,7 +85,8 @@ CREATE TABLE IF NOT EXISTS today_productsV2 (
     number VARCHAR(255),
     price VARCHAR(255),
     image VARCHAR(255),
-    link VARCHAR(255)
+    link VARCHAR(255),
+    site_id INT
 )
 ''')
 
@@ -91,7 +105,7 @@ today_data = []
 cursor.execute('DELETE FROM today_productsV2')
 
 # Цикл по всем страницам
-for page in range(1, last_page + 1):
+for page in range(1, last_page+1):
     print(f"Парсим страницу: {page}")
     driver.get(f"https://vapkagro.ru/catalog/avtomobilnye-zapchasti/?PAGEN_1={page}&SIZEN_1=12")
     time.sleep(2)  # Задержка для прогрузки страницы
@@ -151,19 +165,19 @@ for page in range(1, last_page + 1):
 
             # Добавляем товар в `today_productsV2`
             cursor.execute('''
-                INSERT INTO today_productsV2 (date_parsed, title, number, price, image, link)
-                VALUES (%s, %s, %s, %s, %s, %s)
-            ''', (current_date, title, number, price, image, full_link))
+                INSERT INTO today_productsV2 (date_parsed, title, number, price, image, link, site_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (current_date, title, number, price, image, full_link, '2'))
 
             # Проверка: если ссылка уже есть в базе данных
             if full_link in existing_data:
                 # Если цена отличается от сохраненной, добавляем запись с новой ценой
                 if price != existing_data[full_link]:
-                    today_data.append((current_date, title, number, price, image, full_link))
+                    today_data.append((current_date, title, number, price, image, full_link,'2'))
                     print(f"Новая цена для {title}: добавляем в базу данных.")
             else:
                 # Если товара по ссылке нет в базе, добавляем его как новый
-                today_data.append((current_date, title, number, price, image, full_link))
+                today_data.append((current_date, title, number, price, image, full_link,'2'))
 
         except Exception as e:
             print(f"Ошибка при обработке товара: {e}")
@@ -171,8 +185,8 @@ for page in range(1, last_page + 1):
 # Добавляем данные о товарах с новыми ценами и новыми товарами в `productsV2`
 if today_data:
     cursor.executemany('''
-        INSERT INTO productsV2 (date_parsed, title, number, price, image, link)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO productsV2 (date_parsed, title, number, price, image, link, site_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     ''', today_data)
 def ensure_connection():
     if not conn.is_connected():
