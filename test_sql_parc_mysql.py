@@ -9,6 +9,8 @@ import pytz
 import re
 import requests
 import base64
+import time
+
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')
@@ -35,43 +37,33 @@ else:
     print(f"Ошибка загрузки settings.txt: {response.status_code}")
     exit(1)
 
-# Подключение к базе данных MySQL
+# Функция для обеспечения устойчивого подключения
+def ensure_connection():
+    global conn, cursor
+    try:
+        if not conn.is_connected():
+            conn.reconnect(attempts=3, delay=5)
+            print("Соединение восстановлено!")
+    except Exception as e:
+        print(f"Ошибка восстановления соединения: {e}")
+        try:
+            conn = mysql.connector.connect(**db_config)
+            cursor = conn.cursor()
+            print("Новое соединение установлено!")
+        except mysql.connector.Error as err:
+            print(f"Не удалось восстановить подключение: {err}")
+            exit(1)
+
+# Инициализация подключения к базе данных
 try:
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
-    print("Подключение успешно!")
+    print("Первичное подключение успешно!")
 except mysql.connector.Error as err:
     print(f"Ошибка подключения: {err}")
     exit(1)
 
-# URL страницы интернет-магазина
-url = "https://avtobat36.ru/catalog/avtomobili_gruzovye/"
-driver.get(url)
-html_content = driver.page_source
-soup = BeautifulSoup(html_content, 'lxml')
-
-# Находим номер последней страницы
-pages = soup.find('div', class_='bx_pagination_page').find_all('li')
-last_page = int(pages[-2].text.strip())
-
-# Подключение к базе данных MySQL
-db_config = {
-    'host': 'krutskuy.beget.tech',  # Замените на ваше имя хоста
-    'user': 'krutskuy_parc',       # Ваше имя пользователя
-    'password': 'AnosVoldigod0',    # Ваш пароль
-    'database': 'krutskuy_parc',    # Имя вашей базы данных
-}
-
-# Подключение к базе данных
-try:
-    conn = mysql.connector.connect(**db_config)
-    cursor = conn.cursor()
-    print("Подключение успешно!")
-except mysql.connector.Error as err:
-    print(f"Ошибка подключения: {err}")
-
-
-# Создаем таблицу, если ее нет
+# Создаем таблицы, если их нет
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS products (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -85,7 +77,6 @@ CREATE TABLE IF NOT EXISTS products (
 )
 ''')
 
-# Создаем таблицу для актуальных данных, если она не существует
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS today_products (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -99,11 +90,22 @@ CREATE TABLE IF NOT EXISTS today_products (
 )
 ''')
 
+# URL страницы интернет-магазина
+url = "https://avtobat36.ru/catalog/avtomobili_gruzovye/"
+driver.get(url)
+html_content = driver.page_source
+soup = BeautifulSoup(html_content, 'lxml')
+
+# Находим номер последней страницы
+pages = soup.find('div', class_='bx_pagination_page').find_all('li')
+last_page = int(pages[-2].text.strip())
+
 # Получаем текущую дату в часовом поясе UTC+3
 tz = pytz.timezone("Europe/Moscow")
 current_date = datetime.now(tz)
 
 # Получаем ссылки и цены для всех товаров из базы данных
+ensure_connection()
 cursor.execute('SELECT link, price FROM products')
 existing_products = cursor.fetchall()
 existing_links = {item[0]: item[1] for item in existing_products}  # link -> price
@@ -111,11 +113,7 @@ existing_links = {item[0]: item[1] for item in existing_products}  # link -> pri
 # Переменная для хранения данных сегодняшнего дня
 today_data = []
 
-def ensure_connection():
-    if not conn.is_connected():
-        conn.reconnect()
-
-# В основном цикле перед выполнением запросов к базе данных
+# Основной цикл по страницам
 for page in range(1, last_page + 1):
     ensure_connection()
     page_url = f"https://avtobat36.ru/catalog/avtomobili_gruzovye/?PAGEN_2={page}"
@@ -146,51 +144,41 @@ for page in range(1, last_page + 1):
             link = link_element['href'] if link_element else "Нет ссылки"
             link_full = f"https://avtobat36.ru{link}"
 
-            # Проверка на наличие изображения
             image_element = product.find('img')
             image = f"https://avtobat36.ru{image_element['src']}" if image_element and 'src' in image_element.attrs else "Нет изображения"
 
-            # Добавляем данные для последующей обработки
-            today_data.append((current_date, title, number, price, image, link_full,'1'))
-
+            today_data.append((current_date, title, number, price, image, link_full, 1))
         except Exception as e:
             print(f"Ошибка при обработке товара: {e}")
 
-# Проверка на новые товары или изменение цены
+# Проверка новых товаров и обновление данных
 new_entries = []
 
-for current_date, title, number, price, image, link in today_data:
-    # Проверка на наличие ссылки среди записей в базе данных
+for current_date, title, number, price, image, link, site_id in today_data:
     if link in existing_links:
-        # Если ссылка уже есть, проверяем изменение цены
         last_price = existing_links[link]
-        if price != last_price:  # Цена изменилась
-            new_entries.append((current_date, title, number, price, image, link,'1'))
+        if price != last_price:
+            new_entries.append((current_date, title, number, price, image, link, site_id))
     else:
-        # Новый товар, если ссылка не найдена в базе
-        new_entries.append((current_date, title, number, price, image, link,'1'))
+        new_entries.append((current_date, title, number, price, image, link, site_id))
 
-# Добавление новых товаров и товаров с измененной ценой в базу данных
 if new_entries:
+    ensure_connection()
     print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
     cursor.executemany('''
         INSERT INTO products (date_parsed, title, number, price, image, link, site_id)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
     ''', new_entries)
-else:
-    print("Изменений нет, данные не будут добавлены.")
 
-# Удаляем все записи из таблицы актуальных данных, чтобы сохранить только данные текущего дня
+# Обновляем таблицу актуальных данных
+ensure_connection()
 cursor.execute('DELETE FROM today_products')
-# Обновляем таблицу актуальных данных новыми данными текущего дня
 cursor.executemany('''
     INSERT INTO today_products (date_parsed, title, number, price, image, link, site_id)
     VALUES (%s, %s, %s, %s, %s, %s, %s)
 ''', today_data)
 
-
-
-# Сохранение и закрытие соединения
+# Сохранение и завершение
 conn.commit()
 cursor.close()
 conn.close()
