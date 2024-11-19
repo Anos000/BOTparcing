@@ -175,7 +175,7 @@ if new_entries:
     print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
     cursor.executemany('''
         INSERT INTO products (date_parsed, title, number, price, image, link, site_id)
-        VALUES (%s, %s, %s, %s, %s, %s, '1')
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     ''', new_entries)
 else:
     print("Изменений нет, данные не будут добавлены.")
@@ -185,7 +185,7 @@ cursor.execute('DELETE FROM today_products')
 # Обновляем таблицу актуальных данных новыми данными текущего дня
 cursor.executemany('''
     INSERT INTO today_products (date_parsed, title, number, price, image, link, site_id)
-    VALUES (%s, %s, %s, %s, %s, %s, '1')
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
 ''', today_data)
 
 
