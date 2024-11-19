@@ -6,6 +6,8 @@ import mysql.connector
 from datetime import datetime
 import pytz
 import re
+import requests
+import base64
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Запуск браузера в фоновом режиме
@@ -15,24 +17,35 @@ options.add_argument('--disable-dev-shm-usage')
 # Устанавливаем драйвер для Chrome с использованием webdriver_manager
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
-# Основной URL страницы
-base_url = "https://www.autoopt.ru/catalog/otechestvennye_gruzoviki?pageSize=100&PAGEN_1="
+# Загрузка файла settings.txt с GitHub
+github_url = "https://api.github.com/repos/Anos000/test_parc/contents/settings.txt"
+response = requests.get(github_url)
+
+if response.status_code == 200:
+    file_content = response.json()
+    decoded_content = base64.b64decode(file_content['content']).decode('utf-8').splitlines()
+    db_config = {
+        'host': decoded_content[0].strip(),
+        'user': decoded_content[1].strip(),
+        'password': decoded_content[2].strip(),
+        'database': decoded_content[3].strip()
+    }
+    print(f"Содержимое settings.txt успешно загружено: {db_config}")
+else:
+    print(f"Ошибка загрузки settings.txt: {response.status_code}")
+    exit(1)
 
 # Подключение к базе данных MySQL
-db_config = {
-    'host': 'krutskuy.beget.tech',  # Замените на ваше имя хоста
-    'user': 'krutskuy_parc',         # Ваше имя пользователя
-    'password': 'AnosVoldigod0',     # Ваш пароль
-    'database': 'krutskuy_parc',     # Имя вашей базы данных
-}
-
-# Подключение к базе данных
 try:
     conn = mysql.connector.connect(**db_config)
     cursor = conn.cursor()
     print("Подключение успешно!")
 except mysql.connector.Error as err:
     print(f"Ошибка подключения: {err}")
+    exit(1)
+
+# Основной URL страницы
+base_url = "https://www.autoopt.ru/catalog/otechestvennye_gruzoviki?pageSize=100&PAGEN_1="
 
 # Создаем таблицу для всех продуктов, если она не существует
 cursor.execute(''' 
@@ -43,7 +56,8 @@ CREATE TABLE IF NOT EXISTS productsV3 (
     number VARCHAR(255),
     price VARCHAR(255),
     image VARCHAR(255),
-    link VARCHAR(255)
+    link VARCHAR(255),
+    site_id INT
 )
 ''')
 
@@ -56,7 +70,8 @@ CREATE TABLE IF NOT EXISTS today_productsV3 (
     number VARCHAR(255),
     price VARCHAR(255),
     image VARCHAR(255),
-    link VARCHAR(255)
+    link VARCHAR(255),
+    site_id INT
 )
 ''')
 
@@ -154,7 +169,7 @@ def parse_page(page_number):
                 else:
                     image_url = 'Нет изображения'
 
-                parsed_data_page.append((current_date, title, number, price, image_url, link))
+                parsed_data_page.append((current_date, title, number, price, image_url, link,'3'))
             except Exception as e:
                 print(f"Ошибка при обработке товара на странице {page_number}: {e}")
 
@@ -182,24 +197,24 @@ for current_date, title, number, price, image, link in parsed_data:
     if link in existing_data_dict:
         last_price = existing_data_dict[link]
         if price != last_price:  # Цена изменилась
-            new_entries.append((current_date, title, number, price, image, link))
+            new_entries.append((current_date, title, number, price, image, link,'3'))
     else:
-        new_entries.append((current_date, title, number, price, image, link))
+        new_entries.append((current_date, title, number, price, image, link,'3'))
 
 # Добавление новых товаров и товаров с измененной ценой в базу данных
 if new_entries:
     print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
     cursor.executemany('''
-        INSERT INTO productsV3 (date_parsed, title, number, price, image, link)
-        VALUES (%s, %s, %s, %s, %s, %s)
+        INSERT INTO productsV3 (date_parsed, title, number, price, image, link, site_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
     ''', new_entries)
 else:
     print("Изменений нет, данные не будут добавлены.")
 
 # Обновляем таблицу актуальных данных новыми данными текущего дня
 cursor.executemany('''
-    INSERT INTO today_productsV3 (date_parsed, title, number, price, image, link)
-    VALUES (%s, %s, %s, %s, %s, %s)
+    INSERT INTO today_productsV3 (date_parsed, title, number, price, image, link, site_id)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
 ''', parsed_data)
 
 
