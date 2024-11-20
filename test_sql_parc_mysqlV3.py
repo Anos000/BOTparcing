@@ -101,7 +101,9 @@ existing_data = cursor.fetchall()
 existing_data_dict = {item[0]: item[1] for item in existing_data}
 
 # Очищаем таблицу актуальных данных перед добавлением новых
-cursor.execute('DELETE FROM today_productsV3')
+ensure_connection()
+with conn.cursor() as cursor:
+    cursor.execute('DELETE FROM today_productsV3')
 
 # Функция для извлечения общего количества товаров
 def get_total_products():
