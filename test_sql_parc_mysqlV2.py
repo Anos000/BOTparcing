@@ -60,8 +60,8 @@ ensure_connection()
 # Создаем таблицы
 with conn.cursor() as cursor:
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS productsV2 (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+    CREATE TABLE IF NOT EXISTS All_products (
+        id INT,
         date_parsed DATETIME,
         title VARCHAR(255),
         number VARCHAR(255),
@@ -72,8 +72,8 @@ with conn.cursor() as cursor:
     )
     ''')
     cursor.execute('''
-    CREATE TABLE IF NOT EXISTS today_productsV2 (
-        id INT AUTO_INCREMENT PRIMARY KEY,
+    CREATE TABLE IF NOT EXISTS All_today_products (
+        id INT,
         date_parsed DATETIME,
         title VARCHAR(255),
         number VARCHAR(255),
@@ -104,13 +104,10 @@ current_date = datetime.now(tz)
 # Извлекаем данные из базы
 ensure_connection()
 with conn.cursor(dictionary=True) as cursor:
-    cursor.execute('SELECT link, price FROM productsV2')
+    cursor.execute('SELECT link, price FROM All_products')
     existing_data = {row['link']: row['price'] for row in cursor.fetchall()}
 
-# Удаляем данные сегодняшнего дня
-ensure_connection()
-with conn.cursor() as cursor:
-    cursor.execute('DELETE FROM today_productsV2')
+
 
 # Обработка страниц
 today_data = []
@@ -152,7 +149,7 @@ for page in range(1, last_page + 1):
             ensure_connection()
             with conn.cursor() as cursor:
                 cursor.execute('''
-                    INSERT INTO today_productsV2 (date_parsed, title, number, price, image, link, site_id)
+                    INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ''', (current_date, title, number, price, image, link, 2))
 
@@ -168,7 +165,7 @@ if today_data:
     ensure_connection()
     with conn.cursor() as cursor:
         cursor.executemany('''
-            INSERT INTO productsV2 (date_parsed, title, number, price, image, link, site_id)
+            INSERT INTO All_products (date_parsed, title, number, price, image, link, site_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         ''', today_data)
 
