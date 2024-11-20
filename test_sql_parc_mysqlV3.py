@@ -61,8 +61,8 @@ base_url = "https://www.autoopt.ru/catalog/otechestvennye_gruzoviki?pageSize=100
 
 # Создаем таблицу для всех продуктов, если она не существует
 cursor.execute(''' 
-CREATE TABLE IF NOT EXISTS productsV3 (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS All_products (
+    id INT,
     date_parsed DATETIME,
     title VARCHAR(255),
     number VARCHAR(255),
@@ -75,8 +75,8 @@ CREATE TABLE IF NOT EXISTS productsV3 (
 
 # Создаем таблицу для актуальных данных на текущий день, если она не существует
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS today_productsV3 (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS All_today_products (
+    id INT,
     date_parsed DATETIME,
     title VARCHAR(255),
     number VARCHAR(255),
@@ -93,17 +93,12 @@ current_date = datetime.now(tz)
 
 # Извлечение всех ссылок и последних цен из базы данных
 cursor.execute(''' 
-    SELECT link, price FROM productsV3
+    SELECT link, price FROM All_products
 ''')
 existing_data = cursor.fetchall()
 
 # Преобразуем данные в словарь для быстрой проверки (link -> price)
 existing_data_dict = {item[0]: item[1] for item in existing_data}
-
-# Очищаем таблицу актуальных данных перед добавлением новых
-ensure_connection()
-with conn.cursor() as cursor:
-    cursor.execute('DELETE FROM today_productsV3')
 
 # Функция для извлечения общего количества товаров
 def get_total_products():
@@ -217,13 +212,13 @@ for current_date, title, number, price, image, link, site_id in parsed_data:
 if new_entries:
     print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
     cursor.executemany('''
-        INSERT INTO productsV3 (date_parsed, title, number, price, image, link, site_id)
+        INSERT INTO All_products (date_parsed, title, number, price, image, link, site_id)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
     ''', new_entries)
 
 # Обновляем таблицу актуальных данных новыми данными текущего дня
 cursor.executemany('''
-    INSERT INTO today_productsV3 (date_parsed, title, number, price, image, link, site_id)
+    INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
     VALUES (%s, %s, %s, %s, %s, %s, %s)
 ''', parsed_data)
 
