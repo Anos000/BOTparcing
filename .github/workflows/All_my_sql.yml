@@ -1,7 +1,7 @@
-krutskuy.beget.tech
-krutskuy_parc
-AnosVoldigod0
-krutskuy_parc
+name: Run All Parsers Sequentially
+
+on:
+  schedule:
     - cron: '0 21 * * *'  # Запуск ежедневно в 21:00 UTC
   workflow_dispatch:  # Ручной запуск
 
