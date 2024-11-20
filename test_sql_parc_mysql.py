@@ -106,7 +106,7 @@ current_date = datetime.now(tz)
 
 # Получаем ссылки и цены для всех товаров из базы данных
 ensure_connection()
-cursor.execute('SELECT link, price FROM products')
+cursor.execute('SELECT link, price FROM All_products')
 existing_products = cursor.fetchall()
 existing_links = {item[0]: item[1] for item in existing_products}  # link -> price
 
