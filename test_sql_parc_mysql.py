@@ -65,7 +65,7 @@ except mysql.connector.Error as err:
 
 # Создаем таблицы, если их нет
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS products (
+CREATE TABLE IF NOT EXISTS All_products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     date_parsed DATETIME,
     title VARCHAR(255),
@@ -78,7 +78,7 @@ CREATE TABLE IF NOT EXISTS products (
 ''')
 
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS today_products (
+CREATE TABLE IF NOT EXISTS All_today_products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     date_parsed DATETIME,
     title VARCHAR(255),
@@ -166,15 +166,15 @@ if new_entries:
     ensure_connection()
     print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
     cursor.executemany('''
-        INSERT INTO products (date_parsed, title, number, price, image, link, site_id)
+        INSERT INTO All_products (date_parsed, title, number, price, image, link, site_id)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
     ''', new_entries)
 
 # Обновляем таблицу актуальных данных
 ensure_connection()
-cursor.execute('DELETE FROM today_products')
+cursor.execute('DELETE FROM All_today_products')
 cursor.executemany('''
-    INSERT INTO today_products (date_parsed, title, number, price, image, link, site_id)
+    INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
     VALUES (%s, %s, %s, %s, %s, %s, %s)
 ''', today_data)
 
