@@ -1,8 +1,8 @@
-krutskuy.beget.tech
-krutskuy_parc
-AnosVoldigod0
-krutskuy_parc
-    - cron: '0 21 * * *'  # Запуск ежедневно в 0 21 * * * UTC
+name: Run All Parsers Sequentially
+
+on:
+  schedule:
+    - cron: '0 21 * * *'  # Запуск ежедневно в 21:00 UTC
   workflow_dispatch:  # Ручной запуск
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
            MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
         run: |
            python test_sql_parc_mysql.py
- 
+
       - name: Run Python parser 2
         env:
            MYSQL_HOST: ${{ env.MYSQL_HOST }}
@@ -59,7 +59,7 @@ jobs:
            MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
         run: |
            python test_sql_parc_mysqlV2.py
- 
+
       - name: Run Python parser 3
         env:
           MYSQL_HOST: ${{ env.MYSQL_HOST }}
