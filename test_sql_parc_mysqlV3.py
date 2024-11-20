@@ -19,7 +19,7 @@ options.add_argument('--disable-dev-shm-usage')
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 # Загрузка файла settings.txt с GitHub
-github_url = "https://api.github.com/repos/Anos000/test_parc/contents/settings.txt"
+github_url = "https://api.github.com/repos/Anos000/BOTparcing/contents/settings.txt"
 response = requests.get(github_url)
 
 if response.status_code == 200:
