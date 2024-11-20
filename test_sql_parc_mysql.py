@@ -66,7 +66,7 @@ except mysql.connector.Error as err:
 # Создаем таблицы, если их нет
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS All_products (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT,
     date_parsed DATETIME,
     title VARCHAR(255),
     number VARCHAR(255),
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS All_products (
 
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS All_today_products (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id INT,
     date_parsed DATETIME,
     title VARCHAR(255),
     number VARCHAR(255),
