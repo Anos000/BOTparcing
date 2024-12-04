@@ -38,19 +38,20 @@ else:
 # Функция для обеспечения устойчивого подключения
 def ensure_connection():
     global conn, cursor
-    try:
-        if not conn.is_connected():
-            conn.reconnect(attempts=3, delay=5)
-            print("Соединение восстановлено!")
-    except Exception as e:
-        print(f"Ошибка восстановления соединения: {e}")
+    for attempt in range(3):
         try:
+            if conn and conn.is_connected():
+                print("Соединение активно.")
+                return
             conn = mysql.connector.connect(**db_config)
             cursor = conn.cursor()
             print("Новое соединение установлено!")
+            return
         except mysql.connector.Error as err:
-            print(f"Не удалось восстановить подключение: {err}")
-            exit(1)
+            print(f"Попытка {attempt + 1} подключения не удалась: {err}")
+            time.sleep(5)  # Ожидание перед следующей попыткой
+    print("Не удалось восстановить соединение.")
+    exit(1)
 
 # Инициализация подключения к базе данных
 try:
