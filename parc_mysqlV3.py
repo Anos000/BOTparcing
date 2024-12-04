@@ -47,14 +47,21 @@ except mysql.connector.Error as err:
 
 # Функция для проверки и восстановления соединения с базой данных
 def ensure_connection():
-    try:
-        if not conn.is_connected():
-            print("Соединение потеряно. Повторная попытка подключения...")
-            conn.reconnect()
-            print("Подключение восстановлено!")
-    except mysql.connector.Error as err:
-        print(f"Ошибка подключения: {err}")
-        exit(1)
+    global conn, cursor
+    for attempt in range(3):
+        try:
+            if conn and conn.is_connected():
+                print("Соединение активно.")
+                return
+            conn = mysql.connector.connect(**db_config)
+            cursor = conn.cursor()
+            print("Новое соединение установлено!")
+            return
+        except mysql.connector.Error as err:
+            print(f"Попытка {attempt + 1} подключения не удалась: {err}")
+            time.sleep(5)  # Ожидание перед следующей попыткой
+    print("Не удалось восстановить соединение.")
+    exit(1)
 
 # Основной URL страницы
 base_url = "https://www.autoopt.ru/catalog/otechestvennye_gruzoviki?pageSize=100&PAGEN_1="
