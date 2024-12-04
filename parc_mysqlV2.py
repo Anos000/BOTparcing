@@ -54,7 +54,14 @@ def ensure_connection():
             time.sleep(5)  # Ожидание перед следующей попыткой
     print("Не удалось восстановить соединение.")
     exit(1)
-
+# Инициализация подключения к базе данных
+try:
+    conn = mysql.connector.connect(**db_config)
+    cursor = conn.cursor()
+    print("Первичное подключение успешно!")
+except mysql.connector.Error as err:
+    print(f"Ошибка подключения: {err}")
+    exit(1)
 # Устанавливаем начальное соединение
 ensure_connection()
 
