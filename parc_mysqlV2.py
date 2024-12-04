@@ -40,19 +40,20 @@ else:
 # Подключение к базе данных
 def ensure_connection():
     global conn, cursor
-    try:
-        if conn.is_connected():
+    for attempt in range(3):
+        try:
+            if conn and conn.is_connected():
+                print("Соединение активно.")
+                return
+            conn = mysql.connector.connect(**db_config)
+            cursor = conn.cursor()
+            print("Новое соединение установлено!")
             return
-    except NameError:
-        pass
-    try:
-        conn = mysql.connector.connect(**db_config)
-        cursor = conn.cursor()
-        print("Подключение восстановлено!")
-    except mysql.connector.Error as err:
-        print(f"Ошибка подключения: {err}")
-        time.sleep(5)
-        ensure_connection()
+        except mysql.connector.Error as err:
+            print(f"Попытка {attempt + 1} подключения не удалась: {err}")
+            time.sleep(5)  # Ожидание перед следующей попыткой
+    print("Не удалось восстановить соединение.")
+    exit(1)
 
 # Устанавливаем начальное соединение
 ensure_connection()
