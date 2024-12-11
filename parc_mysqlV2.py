@@ -37,6 +37,7 @@ else:
     print(f"Ошибка загрузки settings.txt: {response.status_code}")
     exit(1)
 
+
 # Подключение к базе данных
 def ensure_connection():
     global conn, cursor
@@ -54,6 +55,8 @@ def ensure_connection():
             time.sleep(5)  # Ожидание перед следующей попыткой
     print("Не удалось восстановить соединение.")
     exit(1)
+
+
 # Инициализация подключения к базе данных
 try:
     conn = mysql.connector.connect(**db_config)
@@ -91,7 +94,7 @@ with conn.cursor() as cursor:
         site_id INT
     )
     ''')
-
+cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE()')
 # URL страницы интернет-магазина
 url = "https://vapkagro.ru/catalog/avtomobilnye-zapchasti/?PAGEN_1=1&SIZEN_1=12"
 driver.get(url)
@@ -115,8 +118,6 @@ with conn.cursor(dictionary=True) as cursor:
     cursor.execute('SELECT link, price FROM All_products')
     existing_data = {row['link']: row['price'] for row in cursor.fetchall()}
 
-
-
 # Обработка страниц
 today_data = []
 for page in range(1, last_page + 1):
@@ -138,7 +139,7 @@ for page in range(1, last_page + 1):
             title = product.find('div', class_='name')['title'].strip()
             price = re.sub(r'\D', '', product.find('span', id=re.compile(r'bx_\w+_price')).text.strip())
             link = f"https://vapkagro.ru{product.find('div', class_='product_item_title').find('a')['href']}"
-            
+
             driver.get(link)
             time.sleep(1)
             soup = BeautifulSoup(driver.page_source, 'lxml')
