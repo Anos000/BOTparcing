@@ -8,7 +8,7 @@ import pytz
 import re
 import requests
 import base64
-
+import time
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')
@@ -171,7 +171,7 @@ if new_entries:
 
 # Обновляем таблицу актуальных данных
 ensure_connection()
-cursor.execute('DELETE FROM All_today_products')
+cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE()')
 cursor.executemany('''
     INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
     VALUES (%s, %s, %s, %s, %s, %s, %s)
