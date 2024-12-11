@@ -8,7 +8,7 @@ import pytz
 import re
 import requests
 import base64
-
+import time
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')  # Запуск браузера в фоновом режиме
@@ -62,7 +62,7 @@ def ensure_connection():
             time.sleep(5)  # Ожидание перед следующей попыткой
     print("Не удалось восстановить соединение.")
     exit(1)
-
+cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE()')
 # Основной URL страницы
 base_url = "https://www.autoopt.ru/catalog/otechestvennye_gruzoviki?pageSize=100&PAGEN_1="
 
