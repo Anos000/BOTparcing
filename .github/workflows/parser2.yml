@@ -1,0 +1,41 @@
+name: Run Python Parser 2
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run_parser_2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install mysql-connector-python
+          pip install selenium webdriver-manager beautifulsoup4 lxml pytz requests
+
+      - name: Install MySQL Client
+        run: sudo apt-get install mysql-client
+
+      - name: Set database environment variables
+        run: |
+          export MYSQL_HOST=$(sed -n '1p' settings.txt)
+          export MYSQL_USER=$(sed -n '2p' settings.txt)
+          export MYSQL_PASSWORD=$(sed -n '3p' settings.txt)
+          export MYSQL_DATABASE=$(sed -n '4p' settings.txt)
+
+      - name: Run Python parser 2
+        env:
+          MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+          MYSQL_PORT: '3306'
+          MYSQL_USER: ${{ secrets.MYSQL_USER }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
+        run: |
+          python parc_mysqlV2.py
