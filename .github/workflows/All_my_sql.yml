@@ -9,12 +9,12 @@ jobs:
   trigger_parsers:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Parser 1 Workflow
-        uses: peter-evans/workflow-dispatch@v1
-        with:
-          workflow: parser1.yml
-          ref: main  # Указываем ветку, с которой будем запускать
-
+      # - name: Trigger Parser 1 Workflow
+        # uses: peter-evans/workflow-dispatch@v1
+        # with:
+          # workflow: parser1.yml
+          # ref: main  # Указываем ветку, с которой будем запускать
+# 
       - name: Trigger Parser 2 Workflow
         uses: peter-evans/workflow-dispatch@v1
         with:
