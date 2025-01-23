@@ -67,7 +67,7 @@ except mysql.connector.Error as err:
     exit(1)
 # Устанавливаем начальное соединение
 ensure_connection()
-
+cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE()')
 # Создаем таблицы
 with conn.cursor() as cursor:
     cursor.execute('''
@@ -94,7 +94,7 @@ with conn.cursor() as cursor:
         site_id INT
     )
     ''')
-cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE()')
+
 # URL страницы интернет-магазина
 url = "https://vapkagro.ru/catalog/avtomobilnye-zapchasti/?PAGEN_1=1&SIZEN_1=12"
 driver.get(url)
