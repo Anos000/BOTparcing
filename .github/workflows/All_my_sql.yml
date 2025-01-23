@@ -2,7 +2,7 @@ name: Run All Parsers Sequentially
 
 on:
   schedule:
-    - cron: '0 21 * * *'
+    - cron: '0 23 * * *'  # Запуск ежедневно в 0 23 * * * UTC
   workflow_dispatch:
 
 permissions:
