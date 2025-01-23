@@ -12,48 +12,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      - name: Install dependencies
+      - name: Trigger Parser 1 Workflow
         run: |
-          pip install mysql-connector-python
-          pip install selenium webdriver-manager beautifulsoup4 lxml pytz requests
+          curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/actions/workflows/parser1.yml/dispatches \
+          -d '{"ref":"main"}'
 
-      - name: Install MySQL Client
-        run: sudo apt-get install mysql-client
-
-      - name: Get database settings from GitHub
-        id: get_settings
+      - name: Trigger Parser 2 Workflow
         run: |
-          curl -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            -o settings.txt \
-            https://api.github.com/repos/${{ github.repository }}/contents/settings.txt
+          curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/actions/workflows/parser2.yml/dispatches \
+          -d '{"ref":"main"}'
 
-      - name: Set database environment variables
+      - name: Trigger Parser 3 Workflow
         run: |
-          export MYSQL_HOST=$(sed -n '1p' settings.txt)
-          export MYSQL_USER=$(sed -n '2p' settings.txt)
-          export MYSQL_PASSWORD=$(sed -n '3p' settings.txt)
-          export MYSQL_DATABASE=$(sed -n '4p' settings.txt)
-
-      - name: Run Python parser 1
-        uses: peter-evans/workflow-dispatch@v1
-        with:
-          workflow: parser1.yml
-          ref: main  # Указываем ветку, с которой будем запускать
-
-      - name: Run Python parser 2
-        uses: peter-evans/workflow-dispatch@v1
-        with:
-          workflow: parser2.yml
-          ref: main  # Указываем ветку, с которой будем запускать
-
-      - name: Run Python parser 3
-        uses: peter-evans/workflow-dispatch@v1
-        with:
-          workflow: parser3.yml
-          ref: main  # Указываем ветку, с которой будем запускать
+          curl -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+          https://api.github.com/repos/${{ github.repository }}/actions/workflows/parser3.yml/dispatches \
+          -d '{"ref":"main"}'
