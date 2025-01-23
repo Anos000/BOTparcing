@@ -46,12 +46,12 @@ jobs:
           workflow: parser1.yml
           ref: main  # Указываем ветку, с которой будем запускать
 
-      - name: Run Python parser 2
-        uses: peter-evans/workflow-dispatch@v1
-        with:
-          workflow: parser2.yml
-          ref: main  # Указываем ветку, с которой будем запускать
-
+      # - name: Run Python parser 2
+        # uses: peter-evans/workflow-dispatch@v1
+        # with:
+          # workflow: parser2.yml
+          # ref: main  # Указываем ветку, с которой будем запускать
+# 
       - name: Run Python parser 3
         uses: peter-evans/workflow-dispatch@v1
         with:
