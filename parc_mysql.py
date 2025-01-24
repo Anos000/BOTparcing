@@ -171,18 +171,22 @@ if new_entries:
 
 # Обновляем таблицу актуальных данных
 ensure_connection()
-cursor.execute('SET SESSION innodb_lock_wait_timeout = 50')  # Увеличиваем таймаут ожидания
-batch_size = 1000
+cursor.execute('SET SESSION innodb_lock_wait_timeout = 120')  # Увеличиваем таймаут ожидания
+batch_size = 500  # Уменьшение размера пакета
 while True:
     cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE() LIMIT %s', (batch_size,))
     rows_deleted = cursor.rowcount
     conn.commit()  # Подтверждаем удаление
+    print(f"Удалено {rows_deleted} строк из All_today_products")
     if rows_deleted == 0:
         break
-cursor.executemany('''
-    INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
-    VALUES (%s, %s, %s, %s, %s, %s, %s)
-''', today_data)
+# Добавляем новые записи в All_today_products
+if today_data:
+    cursor.executemany('''
+        INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    ''', today_data)
+    print(f"Добавлено {len(today_data)} новых записей в All_today_products")
 
 # Сохранение и завершение
 conn.commit()
