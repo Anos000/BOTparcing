@@ -171,8 +171,8 @@ if new_entries:
 
 # Обновляем таблицу актуальных данных
 ensure_connection()
-cursor.execute('SET SESSION innodb_lock_wait_timeout = 120')  # Увеличиваем таймаут ожидания
-batch_size = 500  # Уменьшение размера пакета
+cursor.execute('SET SESSION innodb_lock_wait_timeout = 300')  # Увеличиваем таймаут ожидания
+batch_size = 100  # Уменьшение размера пакета
 while True:
     cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE() LIMIT %s', (batch_size,))
     rows_deleted = cursor.rowcount
