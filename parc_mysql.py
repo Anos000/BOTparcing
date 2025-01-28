@@ -3,12 +3,14 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import mysql.connector
+from mysql.connector.pooling import MySQLConnectionPool
 from datetime import datetime
 import pytz
 import re
 import requests
 import base64
 import time
+
 # Настройка для работы с Chrome
 options = webdriver.ChromeOptions()
 options.add_argument('--headless')
@@ -35,59 +37,52 @@ else:
     print(f"Ошибка загрузки settings.txt: {response.status_code}")
     exit(1)
 
-# Функция для обеспечения устойчивого подключения
-def ensure_connection():
-    global conn, cursor
-    for attempt in range(3):
-        try:
-            if conn and conn.is_connected():
-                print("Соединение активно.")
-                return
-            conn = mysql.connector.connect(**db_config)
-            cursor = conn.cursor()
-            print("Новое соединение установлено!")
-            return
-        except mysql.connector.Error as err:
-            print(f"Попытка {attempt + 1} подключения не удалась: {err}")
-            time.sleep(5)  # Ожидание перед следующей попыткой
-    print("Не удалось восстановить соединение.")
-    exit(1)
+# Создаем пул соединений
+pool = MySQLConnectionPool(pool_name="mypool", pool_size=20, **db_config)
 
-# Инициализация подключения к базе данных
-try:
-    conn = mysql.connector.connect(**db_config)
-    cursor = conn.cursor()
-    print("Первичное подключение успешно!")
-except mysql.connector.Error as err:
-    print(f"Ошибка подключения: {err}")
-    exit(1)
+# Функция для получения соединения из пула
+def get_connection():
+    try:
+        return pool.get_connection()
+    except mysql.connector.Error as err:
+        print(f"Ошибка получения соединения из пула: {err}")
+        raise
 
 # Создаем таблицы, если их нет
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS All_products (
-    id INT,
-    date_parsed DATETIME,
-    title VARCHAR(255),
-    number VARCHAR(255),
-    price VARCHAR(255),
-    image VARCHAR(255),
-    link VARCHAR(255),
-    site_id INT
-)
-''')
+try:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS All_products (
+        id INT,
+        date_parsed DATETIME,
+        title VARCHAR(255),
+        number VARCHAR(255),
+        price VARCHAR(255),
+        image VARCHAR(255),
+        link VARCHAR(255),
+        site_id INT
+    )
+    ''')
 
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS All_today_products (
-    id INT,
-    date_parsed DATETIME,
-    title VARCHAR(255),
-    number VARCHAR(255),
-    price VARCHAR(255),
-    image VARCHAR(255),
-    link VARCHAR(255),
-    site_id INT
-)
-''')
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS All_today_products (
+        id INT,
+        date_parsed DATETIME,
+        title VARCHAR(255),
+        number VARCHAR(255),
+        price VARCHAR(255),
+        image VARCHAR(255),
+        link VARCHAR(255),
+        site_id INT
+    )
+    ''')
+    conn.commit()
+    cursor.close()
+    conn.close()
+except mysql.connector.Error as err:
+    print(f"Ошибка настройки базы данных: {err}")
+    exit(1)
 
 # URL страницы интернет-магазина
 url = "https://avtobat36.ru/catalog/avtomobili_gruzovye/"
@@ -104,17 +99,23 @@ tz = pytz.timezone("Europe/Moscow")
 current_date = datetime.now(tz)
 
 # Получаем ссылки и цены для всех товаров из базы данных
-ensure_connection()
-cursor.execute('SELECT link, price FROM All_products')
-existing_products = cursor.fetchall()
-existing_links = {item[0]: item[1] for item in existing_products}  # link -> price
+try:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT link, price FROM All_products')
+    existing_products = cursor.fetchall()
+    existing_links = {item[0]: item[1] for item in existing_products}  # link -> price
+    cursor.close()
+    conn.close()
+except mysql.connector.Error as err:
+    print(f"Ошибка загрузки данных из базы: {err}")
+    exit(1)
 
 # Переменная для хранения данных сегодняшнего дня
 today_data = []
 
 # Основной цикл по страницам
 for page in range(1, last_page + 1):
-    ensure_connection()
     page_url = f"https://avtobat36.ru/catalog/avtomobili_gruzovye/?PAGEN_2={page}"
     driver.get(page_url)
     html_content = driver.page_source
@@ -162,34 +163,47 @@ for current_date, title, number, price, image, link, site_id in today_data:
         new_entries.append((current_date, title, number, price, image, link, site_id))
 
 if new_entries:
-    ensure_connection()
-    print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
-    cursor.executemany('''
-        INSERT INTO All_products (date_parsed, title, number, price, image, link, site_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    ''', new_entries)
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
+        cursor.executemany('''
+            INSERT INTO All_products (date_parsed, title, number, price, image, link, site_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', new_entries)
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except mysql.connector.Error as err:
+        print(f"Ошибка добавления данных в базу: {err}")
 
 # Обновляем таблицу актуальных данных
-ensure_connection()
-cursor.execute('SET SESSION innodb_lock_wait_timeout = 300')  # Увеличиваем таймаут ожидания
-batch_size = 100  # Уменьшение размера пакета
-while True:
-    cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE() LIMIT %s', (batch_size,))
-    rows_deleted = cursor.rowcount
-    conn.commit()  # Подтверждаем удаление
-    print(f"Удалено {rows_deleted} строк из All_today_products")
-    if rows_deleted == 0:
-        break
-# Добавляем новые записи в All_today_products
-if today_data:
-    cursor.executemany('''
-        INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    ''', today_data)
-    print(f"Добавлено {len(today_data)} новых записей в All_today_products")
+try:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('SET SESSION innodb_lock_wait_timeout = 300')  # Увеличиваем таймаут ожидания
+    batch_size = 100  # Уменьшение размера пакета
+    while True:
+        cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE() LIMIT %s', (batch_size,))
+        rows_deleted = cursor.rowcount
+        conn.commit()  # Подтверждаем удаление
+        print(f"Удалено {rows_deleted} строк из All_today_products")
+        if rows_deleted == 0:
+            break
 
-# Сохранение и завершение
-conn.commit()
-cursor.close()
-conn.close()
+    # Добавляем новые записи в All_today_products
+    if today_data:
+        cursor.executemany('''
+            INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        ''', today_data)
+        conn.commit()
+        print(f"Добавлено {len(today_data)} новых записей в All_today_products")
+
+    cursor.close()
+    conn.close()
+except mysql.connector.Error as err:
+    print(f"Ошибка обновления таблицы актуальных данных: {err}")
+
+# Завершение работы
 driver.quit()
