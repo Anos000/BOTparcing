@@ -3,6 +3,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import mysql.connector
+from mysql.connector.pooling import MySQLConnectionPool
 from datetime import datetime
 import pytz
 import re
@@ -37,36 +38,19 @@ else:
     print(f"Ошибка загрузки settings.txt: {response.status_code}")
     exit(1)
 
+# Создаем пул соединений
+pool = MySQLConnectionPool(pool_name="mypool", pool_size=20, **db_config)
 
-# Подключение к базе данных
-def ensure_connection():
-    global conn, cursor
-    for attempt in range(3):
-        try:
-            if conn and conn.is_connected():
-                print("Соединение активно.")
-                return
-            conn = mysql.connector.connect(**db_config)
-            cursor = conn.cursor()
-            print("Новое соединение установлено!")
-            return
-        except mysql.connector.Error as err:
-            print(f"Попытка {attempt + 1} подключения не удалась: {err}")
-            time.sleep(5)  # Ожидание перед следующей попыткой
-    print("Не удалось восстановить соединение.")
-    exit(1)
-
-
-# Инициализация подключения к базе данных
-try:
-    conn = mysql.connector.connect(**db_config)
-    cursor = conn.cursor()
-    print("Первичное подключение успешно!")
-except mysql.connector.Error as err:
-    print(f"Ошибка подключения: {err}")
-    exit(1)
+# Функция для получения соединения из пула
+def get_connection():
+    try:
+        return pool.get_connection()
+    except mysql.connector.Error as err:
+        print(f"Ошибка получения соединения из пула: {err}")
+        raise
 # Устанавливаем начальное соединение
-ensure_connection()
+conn = get_connection()
+cursor = conn.cursor()
 cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE()')
 # Создаем таблицы
 with conn.cursor() as cursor:
@@ -94,6 +78,9 @@ with conn.cursor() as cursor:
         site_id INT
     )
     ''')
+conn.commit()
+cursor.close()
+conn.close()
 
 # URL страницы интернет-магазина
 url = "https://vapkagro.ru/catalog/avtomobilnye-zapchasti/?PAGEN_1=1&SIZEN_1=12"
@@ -113,10 +100,13 @@ tz = pytz.timezone("Europe/Moscow")
 current_date = datetime.now(tz)
 
 # Извлекаем данные из базы
-ensure_connection()
+conn = get_connection()
 with conn.cursor(dictionary=True) as cursor:
     cursor.execute('SELECT link, price FROM All_products')
     existing_data = {row['link']: row['price'] for row in cursor.fetchall()}
+conn.commit()
+cursor.close()
+conn.close()
 
 # Обработка страниц
 today_data = []
@@ -155,7 +145,7 @@ for page in range(1, last_page + 1):
             image = f"https://vapkagro.ru{image['content']}" if image else "Нет изображения"
 
             # Обновление базы данных
-            ensure_connection()
+            conn = get_connection()
             with conn.cursor() as cursor:
                 cursor.execute('''
                     INSERT INTO All_today_products (date_parsed, title, number, price, image, link, site_id)
@@ -166,17 +156,22 @@ for page in range(1, last_page + 1):
                     today_data.append((current_date, title, number, price, image, link, 2))
                 elif link not in existing_data:
                     today_data.append((current_date, title, number, price, image, link, 2))
+            conn.commit()
+            cursor.close()
+            conn.close()
         except Exception as e:
             print(f"Ошибка при обработке товара: {e}")
 
 # Сохранение новых данных
 if today_data:
-    ensure_connection()
+    conn = get_connection()
     with conn.cursor() as cursor:
         cursor.executemany('''
             INSERT INTO All_products (date_parsed, title, number, price, image, link, site_id)
             VALUES (%s, %s, %s, %s, %s, %s, %s)
         ''', today_data)
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-conn.commit()
 driver.quit()
