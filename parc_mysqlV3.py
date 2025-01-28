@@ -3,6 +3,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import mysql.connector
+from mysql.connector.pooling import MySQLConnectionPool
 from datetime import datetime
 import pytz
 import re
@@ -36,32 +37,19 @@ else:
     print(f"Ошибка загрузки settings.txt: {response.status_code}")
     exit(1)
 
-# Подключение к базе данных MySQL
-try:
-    conn = mysql.connector.connect(**db_config)
-    cursor = conn.cursor()
-    print("Подключение успешно!")
-except mysql.connector.Error as err:
-    print(f"Ошибка подключения: {err}")
-    exit(1)
+# Создаем пул соединений
+pool = MySQLConnectionPool(pool_name="mypool", pool_size=20, **db_config)
 
-# Функция для проверки и восстановления соединения с базой данных
-def ensure_connection():
-    global conn, cursor
-    for attempt in range(3):
-        try:
-            if conn and conn.is_connected():
-                print("Соединение активно.")
-                return
-            conn = mysql.connector.connect(**db_config)
-            cursor = conn.cursor()
-            print("Новое соединение установлено!")
-            return
-        except mysql.connector.Error as err:
-            print(f"Попытка {attempt + 1} подключения не удалась: {err}")
-            time.sleep(5)  # Ожидание перед следующей попыткой
-    print("Не удалось восстановить соединение.")
-    exit(1)
+# Функция для получения соединения из пула
+def get_connection():
+    try:
+        return pool.get_connection()
+    except mysql.connector.Error as err:
+        print(f"Ошибка получения соединения из пула: {err}")
+        raise
+
+conn = get_connection()
+cursor = conn.cursor()
 cursor.execute('DELETE FROM All_today_products WHERE date_parsed < CURDATE()')
 # Основной URL страницы
 base_url = "https://www.autoopt.ru/catalog/otechestvennye_gruzoviki?pageSize=100&PAGEN_1="
@@ -103,6 +91,9 @@ cursor.execute('''
     SELECT link, price FROM All_products
 ''')
 existing_data = cursor.fetchall()
+conn.commit()
+cursor.close()
+conn.close()
 
 # Преобразуем данные в словарь для быстрой проверки (link -> price)
 existing_data_dict = {item[0]: item[1] for item in existing_data}
@@ -200,9 +191,13 @@ parsed_data = []
 
 # Проходим по всем страницам
 for page_number in range(1, total_pages + 1):
-    ensure_connection()
+    conn = get_connection()
+    cursor = conn.cursor()
     page_data = parse_page(page_number)
     parsed_data.extend(page_data)
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 # Проверка на новые товары или изменение цены
 new_entries = []
@@ -216,6 +211,8 @@ for current_date, title, number, price, image, link, site_id in parsed_data:
         new_entries.append((current_date, title, number, price, image, link, site_id))
 
 # Добавление новых товаров и товаров с измененной ценой в базу данных
+conn = get_connection()
+cursor = conn.cursor()
 if new_entries:
     print("Найдены новые товары или изменения в цене, добавляем в базу данных.")
     cursor.executemany('''
